@@ -98,14 +98,24 @@ class EmailProcessor:
         return results, trash
 
     @staticmethod
-    def delete_processed_files(results: list[dict]):
+    def move_processed_files(results: list[dict], base_output_dir: Path):
         for item in results:
             path = Path(item["path"])
+            if not path.exists():
+                print(f"Файл не найден: {path}")
+                continue
+            for category in item.get("categories", ["Прочее"]):
+                category_dir = base_output_dir / category
+                category_dir.mkdir(parents=True, exist_ok=True)
+                dest = category_dir / path.name
+                if len(item["categories"]) > 1:
+                    import shutil
+                    shutil.copy2(path, dest)
+                else:
+                    path.rename(dest)
+                print(f"Перемещён: {path.name} → {category}/")
             if path.exists():
                 path.unlink()
-                print(f"Удалён: {path}")
-            else:
-                print(f"Файл не найден: {path}")
 
 
 class MailClassifier:
