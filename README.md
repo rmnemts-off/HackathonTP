@@ -16,6 +16,7 @@
 HackathonTP/
 ├── email_parser_and_classifier.py
 ├── run.sh
+├── requirements.txt
 ├── tests/
 └── README.md
 ```
@@ -33,7 +34,7 @@ bash run.sh inbox
 Перед первым запуском установить зависимости:
 
 ```bash
-pip install pymorphy3 razdel
+pip install -r requirements.txt
 ```
 
 Результаты появятся в папке `output/`.
