@@ -8,6 +8,11 @@ def processor():
     return EmailProcessor()
 
 
+@pytest.fixture
+def classifier():
+    return MailClassifier()
+
+
 @pytest.mark.parametrize(
     "subject, body",
     [
@@ -161,6 +166,46 @@ def test_legal(processor, subject, body):
     assert result
 
 
+def test_no_category(processor, classifier):
+    record = {
+        "subject_nrm": "Привет",
+        "body_nrm": "Как дела? Давно не виделись, заходи в гости.",
+        "from": "friend@mail.ru",
+        "to": "user@company.ru"
+    }
+
+    record["subject_lemm"] = processor.lemmatize(record["subject_nrm"])
+    record["body_lemm"] = processor.lemmatize(record["body_nrm"])
+
+    categories = classifier.classify(record)
+    assert categories == ["Прочее"]
+
+
+def test_classify_priority_order(processor, classifier):
+    draft_record = {
+        "subject_nrm": "КРИТИЧЕСКИЙ ИНЦИДЕНТ ВЫ ВЫИГРАЛИ",
+        "body_nrm": "",
+        "from": "user@company.ru",
+        "to": None
+    }
+
+    draft_record["subject_lemm"] = processor.lemmatize(draft_record["subject_nrm"])
+    draft_record["body_lemm"] = []
+
+    assert classifier.classify(draft_record) == ["Черновик"]
+
+    outgoing_record = {
+        "subject_nrm": "АКЦИЯ СКИДКА",
+        "body_nrm": "Вам доступна скидка",
+        "from": "it-support@company.ru",
+        "to": "client@mail.ru"
+    }
+    outgoing_record["subject_lemm"] = processor.lemmatize(outgoing_record["subject_nrm"])
+    outgoing_record["body_lemm"] = processor.lemmatize(outgoing_record["body_nrm"])
+
+    assert classifier.classify(outgoing_record) == ["Исходящие"]
+
+
 def test_empty_draft():
     result = MailClassifier.is_draft(
         "",
@@ -223,6 +268,39 @@ def test_invalid_directory(processor):
         processor.process_directory(
             "folder_that_does_not_exist"
         )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        (
+            "Привет,    как дела?\n\n\n\nНовая строка.   ",
+            "привет, как дела?\n\nновая строка."
+        ),
+        (
+            "",
+            ""
+        ),
+        (
+            "   \n\n   \n   ",
+            ""
+        ),
+        (
+            "Текст\tс\tтабуляцией",
+            "текст с табуляцией"
+        ),
+        (
+            "Строка 1   \nСтрока 2  \nСтрока 3 ",
+            "строка 1\nстрока 2\nстрока 3"
+        ),
+        (
+            "Привет, мир!\nВсё отлично.",
+            "привет, мир!\nвсё отлично."
+        ),
+    ]
+)
+def test_normalize_whitespace(processor, text, expected):
+    assert processor.normalize(text) == expected
 
 
 def test_non_txt_file(processor, tmp_path):
