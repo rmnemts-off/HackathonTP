@@ -113,7 +113,7 @@ class EmailProcessor:
                     shutil.copy2(path, dest)
                 else:
                     path.rename(dest)
-                print(f"Перемещён: {path.name} → {category}/")
+                print(f"Перемещён: {path.name} -> {category}/")
             if path.exists():
                 path.unlink()
 
@@ -455,6 +455,6 @@ if __name__ == "__main__":
     with (output_dir / "trash.txt").open("w", encoding="utf-8") as f:
         f.writelines(f"{p}\n" for p in trash)
 
-    print(f"Готово: {len(classified)} писем → output/classified.json, {len(trash)} в trash")
+    print(f"Готово: {len(classified)} писем -> output/classified.json, {len(trash)} в trash")
 
-    processor.delete_processed_files(classified)
+    processor.move_processed_files(classified, output_dir)
